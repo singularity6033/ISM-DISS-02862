@@ -32,7 +32,7 @@ print('COCO supercategories: \n{}'.format(' '.join(nms)))
 # get all images containing given categories, select one at random
 catIds = coco.getCatIds(catNms=['person', 'dog', 'skateboard'])
 imgIds = coco.getImgIds()
-img = coco.loadImgs(imgIds[0])[0]
+img = coco.loadImgs(501693)[0]
 # I = io.imread(img['coco_url'])
 imgIds = coco.getImgIds(imgIds=[id])
 # img = coco.loadImgs(imgIds[np.random.randint(0, len(imgIds))])[0]
@@ -49,4 +49,5 @@ imgIds = coco.getImgIds(imgIds=[id])
 # plt.axis('off')
 print(img['id'])
 annIds = coco.getAnnIds(imgIds=id, iscrowd=None)
+# catIds = coco.getCatIds(annIds=annIds)
 anns = coco.loadAnns(annIds)

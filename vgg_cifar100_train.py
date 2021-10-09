@@ -19,7 +19,7 @@ num_classes = 100
 weight_decay = 0.0005
 x_shape = [32, 32, 3]
 
-# Implement of VGG-16 CNN
+# Implementation of VGG-16 CNN
 model = Sequential()
 weight_decay = weight_decay
 
@@ -149,8 +149,7 @@ model.add(Dropout(0.5))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 
-model.summary()
-
+# model.summary()
 
 # Training Process
 def normalize(X_train, X_test):
@@ -243,8 +242,8 @@ plt.title('accuracy')
 plt.savefig("vgg_cifar100_accuracy.png", dpi=300, format="png")
 
 # Save model to disk
-print("Save model to disk")
-model.save('cifar100vgg.h5')
+print("Save model weights to disk")
+model.save_weights('cifar100vgg.h5')
 model_json = model.to_json()
 with open("cifar100vgg.json", "w") as json_file:
     json_file.write(model_json)

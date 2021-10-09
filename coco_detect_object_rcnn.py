@@ -1,20 +1,14 @@
 # import the necessary packages
 from imutils.object_detection import non_max_suppression
-# from pyimagesearch.nms import non_max_suppression_fast
-from pyimagesearch import config
+from utils import config
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
 import numpy as np
-import argparse
 import imutils
 import pickle
 import cv2
 
-# construct the argument parser and parse the arguments
-# ap = argparse.ArgumentParser()
-# ap.add_argument("-i", "--image", required=True, help="path to input image")
-# args = vars(ap.parse_args())
 
 # load the our fine-tuned model and label binarizer from disk
 print("[INFO] loading model and label binarizer...")
@@ -65,8 +59,7 @@ idxs = np.where(labels == "raccoon")[0]
 # label probabilities associated with the "raccoon" class
 boxes = boxes[idxs]
 proba = proba[idxs][:, 1]
-# further filter indexes by enforcing a minimum prediction
-# probability be met
+# further filter indexes by enforcing a minimum prediction probability be met
 idxs = np.where(proba >= config.MIN_PROBA)
 boxes = boxes[idxs]
 proba = proba[idxs]

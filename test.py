@@ -1,11 +1,11 @@
 import os
+import pickle
 import re
 import skimage.io as io
 import matplotlib.pyplot as plt
 import numpy as np
 # from pycocotools.coco import COCO
 import cv2
-
 
 # def isMatch(s1, s2) -> bool:
 #     dict = {
@@ -20,10 +20,17 @@ import cv2
 #
 #
 # print(isMatch( ')', '('))
-fuck = [1, 2, 3]
-a = np.ones(3)
-fuck[0] = a
+from utils import config
 
+fuck = [1, 2, 3]
+# a = np.ones(3)
+# dict = {'a': 1, 'b': 2, 'c': 3}
+# labels = [k for k, v in dict.items()]
+# print(labels)
+lb = pickle.loads(open(config.ENCODER_PATH, "rb").read())
+print(lb.classes_)
+# if '1' is not "train":
+#     print(1)
 # # f = []
 # # f.append((1,1))
 # # f.append((2,2))
@@ -52,6 +59,7 @@ fuck[0] = a
 #
 # # plt.imshow(I)
 # # plt.show()
+print('tr' is not "train")
 # dataDir = './Data/coco/annotations'
 # dataType = 'train2017'
 # annFile = '{}/annotations/instances_{}.json'.format(dataDir, dataType)

@@ -35,24 +35,32 @@ f.close()
 # partition the data into training and testing splits using 75% of
 # the data for training and the remaining 25% for testing
 (trainX_dirs, valX_dirs, trainY, valY) = train_test_split(imagePaths, labels, test_size=0.20)
+train_label_counter = np.zeros((79, 1), dtype=int)
 # construct folders to store train and test images
 for train_id, trainX_dir in enumerate(trainX_dirs):
     print("[INFO] shuffling train image {}/{}...".format(train_id + 1, len(trainX_dirs)))
+    label = trainX_dir.split(os.path.sep)[-2]
+    outputPath = os.path.sep.join([config.COCO_TRAIN_PATH, label])
     train_img = cv2.imread(trainX_dir)
-    filename = "{}.png".format(train_id)
-    if not os.path.exists(config.COCO_TRAIN_PATH):
-        os.makedirs(config.COCO_TRAIN_PATH)
-    filePath = os.path.sep.join([config.COCO_TRAIN_PATH, filename])
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+    filename = "{}.png".format(train_label_counter[np.where(lb.classes_ == label), 0])
+    filePath = os.path.sep.join([outputPath, filename])
     cv2.imwrite(filePath, train_img)
+    train_label_counter[np.where(lb.classes_ == label), 0] += 1
 
+test_label_counter = np.zeros((79, 1), dtype=int)
 for test_id, valX_dir in enumerate(valX_dirs):
     print("[INFO] shuffling test image {}/{}...".format(test_id + 1, len(valX_dirs)))
+    label = valX_dir.split(os.path.sep)[-2]
+    outputPath = os.path.sep.join([config.COCO_VAL_PATH, label])
     test_img = cv2.imread(valX_dir)
-    filename = "{}.png".format(test_id)
-    if not os.path.exists(config.COCO_VAL_PATH):
-        os.makedirs(config.COCO_VAL_PATH)
-    filePath = os.path.sep.join([config.COCO_VAL_PATH, filename])
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+    filename = "{}.png".format(test_label_counter[np.where(lb.classes_ == label), 0])
+    filePath = os.path.sep.join([outputPath, filename])
     cv2.imwrite(filePath, test_img)
+    test_label_counter[np.where(lb.classes_ == label), 0] += 1
 
 # serialize the train label to disk
 print("[INFO] saving train label...")

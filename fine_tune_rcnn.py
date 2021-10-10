@@ -27,14 +27,12 @@ import cv2
 import pickle
 import os
 
-# load train and validation set of coco roi
-trainY = pickle.loads(open(config.COCO_TRAIN_LABEL_PATH, "rb").read())
-valY = pickle.loads(open(config.COCO_VAL_LABEL_PATH, "rb").read())
+
 # load label binarizer
 lb = pickle.loads(open(config.ENCODER_PATH, "rb").read())
 # initialize the initial learning rate, number of epochs to train for and batch size
 INIT_LR = 1e-4
-EPOCHS = 50
+EPOCHS = 5
 BS = 32
 
 # construct the training image generator for data augmentation
@@ -50,13 +48,13 @@ aug = ImageDataGenerator(
 train_generator = aug.flow_from_directory(
     config.COCO_TRAIN_PATH,
     target_size=config.INPUT_DIMS,
-    classes=trainY,
     batch_size=BS)
 val_generator = aug.flow_from_directory(
-    config.TEST_PATH,
+    config.COCO_VAL_PATH,
     target_size=config.INPUT_DIMS,
-    classes=valY,
     batch_size=BS)
+
+# labels = [k for k, v in train_generator.class_indices.items()]
 # load pre-trained VGG CNN (cifar100) and drop off the head FC layer
 # and change the input size to (224, 224, 3)
 with open('cifar100vgg.json', 'r') as file:
@@ -72,8 +70,8 @@ new_model.summary()
 headModel = new_model.output
 headModel = Flatten(name="flatten")(headModel)
 headModel = Dense(128, activation="relu")(headModel)
-headModel = Dropout(0.5)(headModel)
-headModel = Dense(80, activation="softmax")(headModel)
+headModel = Dropout(0.5, name='dropout_10')(headModel)
+headModel = Dense(79, activation="softmax")(headModel)
 # place the head FC model on top of the base model (this will become the actual model we will train)
 model = Model(inputs=new_model.input, outputs=headModel)
 # loop over all layers in the base_model and freeze them so they will
@@ -87,9 +85,9 @@ model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy
 print("[INFO] training head...")
 H = model.fit(
     train_generator,
-    steps_per_epoch=len(config.COCO_TRAIN_PATH) // BS,
+    steps_per_epoch=train_generator.n // BS,
     validation_data=val_generator,
-    validation_steps=len(config.COCO_VAL_PATH) // BS,
+    validation_steps=val_generator.n // BS,
     epochs=EPOCHS)
 # serialize the model to disk
 print("[INFO] saving mask detector model...")
@@ -106,7 +104,7 @@ coco = COCO(config.TEST_ANNOTS)
 cats = coco.loadCats(coco.getCatIds())
 catIds = [cat['id'] for cat in cats]
 
-NUM_CLASS = len(cats)
+NUM_CLASS = len(lb.classes_)
 # MIN_IOU: minimum threshold of iou to determine whether a roi is TP or NP
 MIN_IOU = 0.75
 # AP: the area under the precision-recall curve, one class one AP

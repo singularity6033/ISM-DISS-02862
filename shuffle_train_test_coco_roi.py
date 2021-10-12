@@ -35,7 +35,7 @@ f.close()
 # partition the data into training and testing splits using 75% of
 # the data for training and the remaining 25% for testing
 (trainX_dirs, valX_dirs, trainY, valY) = train_test_split(imagePaths, labels, test_size=0.20)
-train_label_counter = np.zeros((79, 1), dtype=int)
+train_label_counter = np.zeros((80, 1), dtype=int)
 # construct folders to store train and test images
 for train_id, trainX_dir in enumerate(trainX_dirs):
     print("[INFO] shuffling train image {}/{}...".format(train_id + 1, len(trainX_dirs)))
@@ -49,7 +49,7 @@ for train_id, trainX_dir in enumerate(trainX_dirs):
     cv2.imwrite(filePath, train_img)
     train_label_counter[np.where(lb.classes_ == label), 0] += 1
 
-test_label_counter = np.zeros((79, 1), dtype=int)
+test_label_counter = np.zeros((80, 1), dtype=int)
 for test_id, valX_dir in enumerate(valX_dirs):
     print("[INFO] shuffling test image {}/{}...".format(test_id + 1, len(valX_dirs)))
     label = valX_dir.split(os.path.sep)[-2]

@@ -23,6 +23,10 @@ import cv2
 from utils import config
 
 fuck = [1, 2, 3]
+l = ['a', 'b', 'c']
+labelNames = np.array(l)
+a = np.where(labelNames == 'a')[0]
+print(fuck[list(labelNames).index('a')])
 # a = np.ones(3)
 # dict = {'a': 1, 'b': 2, 'c': 3}
 # labels = [k for k, v in dict.items()]

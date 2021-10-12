@@ -20,10 +20,33 @@ catIds = [cat['id'] for cat in cats]
 # initialize the total number of label class filename we have
 # saved to disk so far
 label_counter = np.zeros((len(cats), 1), dtype=int)
+xxxx = []
 # loop over the image paths
 for (i, imagePath) in enumerate(imagePaths):
     # show a progress report
     print("[INFO] processing image {}/{}...".format(i + 1, len(imagePaths)))
+    # extract the filename from the file path and use it to derive
+    # the path to the XML annotation file
+    filename = imagePath.split(os.path.sep)[-1]
+    filename = filename[:filename.rfind(".")]
+    img_id = int(filename.lstrip('0'))
+    annIds = coco.getAnnIds(imgIds=img_id, iscrowd=None)
+    annInfos = coco.loadAnns(annIds)
+    # initialize our list of ground-truth bounding boxes
+    gtBoxes = []
+    # coco bounding box format: (x - top left, y - top left, width, height)
+    # loop over all 'object' elements
+    for annInfo in annInfos:
+        # extract the label and bounding box coordinates
+        label_id = annInfo['category_id']
+        cat = cats[catIds.index(label_id)]['name']
+        if cat == 'train':
+            xxxx.append(imagePath)
+
+
+for (i, imagePath) in enumerate(xxxx):
+    # show a progress report
+    print("[INFO] processing image {}/{}...".format(i + 1, len(xxxx)))
     # extract the filename from the file path and use it to derive
     # the path to the XML annotation file
     filename = imagePath.split(os.path.sep)[-1]
@@ -79,20 +102,18 @@ for (i, imagePath) in enumerate(imagePaths):
                 # the positive instance
                 roi = image[propStartY:propEndY, propStartX:propEndX]
                 cat = cats[catIds.index(label_id)]['name']
-                if cat is not "train":
-                    break
-                print('train')
-                filename = "{}.png".format(label_counter[catIds.index(label_id), 0])
-                outputPath = os.path.sep.join([config.DATASET_BASE_PATH, cat])
-                if not os.path.exists(outputPath):
-                    os.makedirs(outputPath)
-                filePath = os.path.sep.join([outputPath, filename])
-                # increment the positive counters
-                positiveROIs += 1
-                label_counter[catIds.index(label_id), 0] += 1
-                # check to see if both the ROI and output path are valid
-                if roi is not None and filePath is not None:
-                    # resize the ROI to the input dimensions of the CNN
-                    # that we'll be fine-tuning, then write the ROI to disk
-                    roi = cv2.resize(roi, config.INPUT_DIMS, interpolation=cv2.INTER_CUBIC)
-                    cv2.imwrite(filePath, roi)
+                if cat == "train":
+                    filename = "{}.png".format(label_counter[catIds.index(label_id), 0])
+                    outputPath = os.path.sep.join([config.DATASET_BASE_PATH, cat])
+                    if not os.path.exists(outputPath):
+                        os.makedirs(outputPath)
+                    filePath = os.path.sep.join([outputPath, filename])
+                    # increment the positive counters
+                    positiveROIs += 1
+                    label_counter[catIds.index(label_id), 0] += 1
+                    # check to see if both the ROI and output path are valid
+                    if roi is not None and filePath is not None:
+                        # resize the ROI to the input dimensions of the CNN
+                        # that we'll be fine-tuning, then write the ROI to disk
+                        roi = cv2.resize(roi, config.INPUT_DIMS, interpolation=cv2.INTER_CUBIC)
+                        cv2.imwrite(filePath, roi)

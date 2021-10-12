@@ -1,30 +1,14 @@
 # import the necessary packages
-from tensorflow.keras.models import model_from_json
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.layers import AveragePooling2D
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
-from tensorflow.keras.preprocessing.image import load_img
-from tensorflow.keras.utils import to_categorical
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.model_selection import train_test_split
 from tensorflow.python.keras.models import load_model
-
-from utils.change_cnn_input_size import change_input_size
 from utils.iou import compute_iou
 from utils.ap import compute_ap
 from utils import config
 import matplotlib.pyplot as plt
 from pycocotools.coco import COCO
-from progressbar import *
 from imutils import paths
 import numpy as np
-import time
 import cv2
 import pickle
 import os
@@ -36,65 +20,7 @@ lb = pickle.loads(open(config.ENCODER_PATH, "rb").read())
 INIT_LR = 1e-4
 EPOCHS = 5
 BS = 32
-
-# construct the training image generator for data augmentation
-aug = ImageDataGenerator(
-    rotation_range=20,
-    zoom_range=0.15,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.15,
-    horizontal_flip=True,
-    fill_mode="nearest")
-
-train_generator = aug.flow_from_directory(
-    config.COCO_TRAIN_PATH,
-    target_size=(32, 32),
-    batch_size=BS)
-val_generator = aug.flow_from_directory(
-    config.COCO_VAL_PATH,
-    target_size=(32, 32),
-    batch_size=BS)
-
-# labels = [k for k, v in train_generator.class_indices.items()]
-# load pre-trained VGG CNN (cifar100) and drop off the head FC layer
-# and change the input size to (224, 224, 3)
-with open('cifar100vgg.json', 'r') as file:
-    model_json = file.read()
-origin_model = model_from_json(model_json)
-origin_model.load_weights('cifar100vgg.h5')
-base_model = Model(inputs=origin_model.input, outputs=origin_model.layers[-8].output)
-# base_model.summary()
-# new_model = change_input_size(base_model, 224, 224, 3)
-# new_model.summary()
-
-# construct the head of the model that will be placed on top of the the base model
-headModel = base_model.output
-headModel = Flatten(name="flatten")(headModel)
-headModel = Dense(128, activation="relu")(headModel)
-headModel = Dropout(0.5, name='dropout_10')(headModel)
-headModel = Dense(79, activation="softmax")(headModel)
-# place the head FC model on top of the base model (this will become the actual model we will train)
-model = Model(inputs=base_model.input, outputs=headModel)
-# loop over all layers in the base_model and freeze them so they will
-# not be updated during the first training process
-for layer in base_model.layers:
-    layer.trainable = True
-# compile model
-opt = Adam(lr=INIT_LR)
-model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
-# fine-tuning the head of the network
-print("[INFO] training head...")
-H = model.fit(
-    train_generator,
-    steps_per_epoch=train_generator.n // BS,
-    validation_data=val_generator,
-    validation_steps=val_generator.n // BS,
-    epochs=EPOCHS)
-# serialize the model to disk
-print("[INFO] saving mask detector model...")
-model.save(config.MODEL_PATH, save_format="h5")
-# model = load_model(config.MODEL_PATH)
+model = load_model(config.MODEL_PATH)
 print("[INFO] evaluating object detector...")
 # make predictions on the testing set and calculate the AP and mAP matrices
 print("[INFO] loading testing images...")
@@ -121,9 +47,9 @@ Precision = [[] for i in range(NUM_CLASS)]
 Recall = [[] for i in range(NUM_CLASS)]
 
 # loop over testing image paths
-for (i, TestImagePath) in enumerate(TestImagePaths):
+for (i, TestImagePath) in enumerate(TestImagePaths[:200]):
     # show a progress report
-    print("[INFO] evaluating testing image {}/{}...".format(i + 1, len(TestImagePaths)))
+    print("[INFO] evaluating testing image {}/{}...".format(i + 1, len(TestImagePaths[:200])))
     # extract the filename from the file path and use it to derive
     # the path to the XML annotation file
     filename = TestImagePath.split(os.path.sep)[-1]
@@ -171,7 +97,7 @@ for (i, TestImagePath) in enumerate(TestImagePaths):
     # initialize counters used to count the number of positive
     positiveROIs = 0
     proposedRoi = np.array(proposedRoi, dtype="float32")
-    label_proba = model.predict(proposedRoi, batch_size=BS)
+    label_proba = model.predict(proposedRoi)
     proposedLabels = lb.classes_[np.argmax(label_proba, axis=1)]
     # loop over the maximum number of region proposals
     for proposedId, proposedLabel in enumerate(proposedLabels[:config.MAX_PROPOSALS]):
@@ -185,9 +111,9 @@ for (i, TestImagePath) in enumerate(TestImagePaths):
             # check to see if the IOU is greater than 80%(P)
             if cat == proposedLabel:
                 if iou > MIN_IOU:
-                    TP_FP[np.where(lb.classes_ == proposedLabel)].append(1)
+                    TP_FP[list(lb.classes_).index(proposedLabel)].append(1)
                 else:
-                    TP_FP[np.where(lb.classes_ == proposedLabel)].append(0)
+                    TP_FP[list(lb.classes_).index(proposedLabel)].append(0)
 for j in range(len(TP_FP)):
     for k in range(len(TP_FP[j])):
         Precision[j].append(sum(TP_FP[j][0:k]) / (len(TP_FP[j][0:k]) + 1))
@@ -195,27 +121,12 @@ for j in range(len(TP_FP)):
     AP[j] = compute_ap(Precision[j], Recall[j])
 mAP = np.mean(AP, axis=0)
 
-# plot the training loss and accuracy
-print("[INFO] plotting results...")
-N = EPOCHS
-plt.style.use("ggplot")
-plt.figure()
-plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
-plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
-plt.title("Training Loss and Accuracy")
-plt.xlabel("Epoch #")
-plt.ylabel("Loss/Accuracy")
-plt.legend(loc="lower left")
-plotPath = os.path.sep.join([config.PLOTS_PATH, "Training_Loss_and_Accuracy_coco.png"])
-plt.savefig(plotPath)
-
 # plot AP and print mAP
 plt.style.use("ggplot")
 plt.figure()
 plt.title("Average Precision (with IoU threshold = " + str(MIN_IOU) + ")")
-plt.plot(lb.classes_, AP)
+plt.plot(lb.classes_[:80], AP)
+plt.xticks(rotation=300)
 plt.xlabel("Class Labels")
 plt.ylabel("AP")
 plotPath = os.path.sep.join([config.PLOTS_PATH, "coco_AP.png"])

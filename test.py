@@ -21,18 +21,23 @@ import cv2
 #
 # print(isMatch( ')', '('))
 from utils import config
-
-fuck = [1, 2, 3]
-l = ['a', 'b', 'c']
-labelNames = np.array(l)
-a = np.where(labelNames == 'a')[0]
-print(fuck[list(labelNames).index('a')])
-# a = np.ones(3)
-# dict = {'a': 1, 'b': 2, 'c': 3}
-# labels = [k for k, v in dict.items()]
-# print(labels)
-lb = pickle.loads(open(config.ENCODER_PATH, "rb").read())
-print(lb.classes_)
+class_no = [i for i in range(80)]
+# print(len(class_no[1:1]))
+a = np.array([[1, 2, 3], [9, 1, 7]])
+b = [(1, 888), (5, 999), (2, 858)]
+b.sort()
+print(b[1][1])
+# fuck = [1, 2, 3]
+# l = ['a', 'b', 'c']
+# labelNames = np.array(l)
+# a = np.where(labelNames == 'a')[0]
+# print(fuck[list(labelNames).index('a')])
+# # a = np.ones(3)
+# # dict = {'a': 1, 'b': 2, 'c': 3}
+# # labels = [k for k, v in dict.items()]
+# # print(labels)
+# lb = pickle.loads(open(config.ENCODER_PATH, "rb").read())
+# print(lb.classes_)
 # if '1' is not "train":
 #     print(1)
 # # f = []
@@ -63,7 +68,7 @@ print(lb.classes_)
 #
 # # plt.imshow(I)
 # # plt.show()
-print('tr' is not "train")
+# print('tr' is not "train")
 # dataDir = './Data/coco/annotations'
 # dataType = 'train2017'
 # annFile = '{}/annotations/instances_{}.json'.format(dataDir, dataType)

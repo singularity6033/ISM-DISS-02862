@@ -72,16 +72,12 @@ for (i, imagePath) in enumerate(imagePaths):
             # initialize the ROI and output path
             roi = None
             outputPath = None
-            # check to see if the IOU is greater than 70% *and* that
+            # check to see if the IOU is greater than 80% *and* that
             # we have not hit our positive count limit
             if iou > 0.8 and positiveROIs <= config.MAX_POSITIVE:
-                # extract the ROI and then derive the output path to
-                # the positive instance
+                # extract the ROI and then derive the output path to the positive instance
                 roi = image[propStartY:propEndY, propStartX:propEndX]
                 cat = cats[catIds.index(label_id)]['name']
-                if cat is not "train":
-                    break
-                print('train')
                 filename = "{}.png".format(label_counter[catIds.index(label_id), 0])
                 outputPath = os.path.sep.join([config.DATASET_BASE_PATH, cat])
                 if not os.path.exists(outputPath):

@@ -49,27 +49,15 @@ for train_id, trainX_dir in enumerate(trainX_dirs):
     cv2.imwrite(filePath, train_img)
     train_label_counter[np.where(lb.classes_ == label), 0] += 1
 
-test_label_counter = np.zeros((80, 1), dtype=int)
-for test_id, valX_dir in enumerate(valX_dirs):
-    print("[INFO] shuffling test image {}/{}...".format(test_id + 1, len(valX_dirs)))
+val_label_counter = np.zeros((80, 1), dtype=int)
+for val_id, valX_dir in enumerate(valX_dirs):
+    print("[INFO] shuffling test image {}/{}...".format(val_id + 1, len(valX_dirs)))
     label = valX_dir.split(os.path.sep)[-2]
     outputPath = os.path.sep.join([config.COCO_VAL_PATH, label])
     test_img = cv2.imread(valX_dir)
     if not os.path.exists(outputPath):
         os.makedirs(outputPath)
-    filename = "{}.png".format(test_label_counter[np.where(lb.classes_ == label), 0])
+    filename = "{}.png".format(val_label_counter[np.where(lb.classes_ == label), 0])
     filePath = os.path.sep.join([outputPath, filename])
     cv2.imwrite(filePath, test_img)
-    test_label_counter[np.where(lb.classes_ == label), 0] += 1
-
-# serialize the train label to disk
-print("[INFO] saving train label...")
-f = open(config.COCO_TRAIN_LABEL_PATH, "wb")
-f.write(pickle.dumps(trainY))
-f.close()
-
-# serialize the test label to disk
-print("[INFO] saving val label...")
-f = open(config.COCO_VAL_LABEL_PATH, "wb")
-f.write(pickle.dumps(valY))
-f.close()
+    val_label_counter[np.where(lb.classes_ == label), 0] += 1

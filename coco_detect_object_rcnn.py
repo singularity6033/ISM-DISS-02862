@@ -1,4 +1,6 @@
 # import the necessary packages
+import os
+
 from imutils.object_detection import non_max_suppression
 from utils import config
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
@@ -13,10 +15,12 @@ import cv2
 # load the our fine-tuned model and label binarizer from disk
 print("[INFO] loading model and label binarizer...")
 model = load_model(config.MODEL_PATH)
+model.summary()
 lb = pickle.loads(open(config.ENCODER_PATH, "rb").read())
+print(lb.classes_)
 # load the input image from disk
-image = cv2.imread('./images/02.jpg')
-image = imutils.resize(image, width=500)
+image = cv2.imread('./Data/coco/images/val2017/000000213935.jpg')
+image = imutils.resize(image, 500)
 # run selective search on the image to generate bounding box proposal
 # regions
 print("[INFO] running selective search...")
@@ -39,10 +43,12 @@ for (x, y, w, h) in rects[:config.MAX_PROPOSALS_INFER]:
     roi = cv2.resize(roi, config.INPUT_DIMS, interpolation=cv2.INTER_CUBIC)
     # further preprocess the ROI
     roi = img_to_array(roi)
-    roi = preprocess_input(roi)
+    # preprocess_input may not be used as rois will be damaged somehow
+    # roi = preprocess_input(roi)
     # update our proposals and bounding boxes lists
     proposals.append(roi)
     boxes.append((x, y, x + w, y + h))
+
 # convert the proposals and bounding boxes into NumPy arrays
 proposals = np.array(proposals, dtype="float32")
 boxes = np.array(boxes, dtype="int32")
@@ -50,51 +56,56 @@ print("[INFO] proposal shape: {}".format(proposals.shape))
 # classify each of the proposal ROIs using fine-tuned model
 print("[INFO] classifying proposals...")
 proba = model.predict(proposals)
-# find the index of all predictions that are positive for the
-# "raccoon" class
+# # find the index of all predictions that are positive for the
+# # "raccoon" class
 print("[INFO] applying NMS...")
-labels = lb.classes_[np.argmax(proba, axis=1)]
-idxs = np.where(labels == "raccoon")[0]
+# labels = lb.classes_[np.argmax(proba, axis=1)]
+# idxs = np.where(labels == "raccoon")[0]
 # use the indexes to extract all bounding boxes and associated class
 # label probabilities associated with the "raccoon" class
-boxes = boxes[idxs]
-proba = proba[idxs][:, 1]
-# further filter indexes by enforcing a minimum prediction probability be met
-idxs = np.where(proba >= config.MIN_PROBA)
-boxes = boxes[idxs]
-proba = proba[idxs]
-# clone the original image so that we can draw on it
-clone = image.copy()
-# loop over the bounding boxes and associated probabilities
-for (box, prob) in zip(boxes, proba):
-    # draw the bounding box, label, and probability on the image
-    (startX, startY, endX, endY) = box
-    cv2.rectangle(clone, (startX, startY), (endX, endY),
-                  (0, 255, 0), 2)
-    y = startY - 10 if startY - 10 > 10 else startY + 10
-    text = "Raccoon: {:.2f}%".format(prob * 100)
-    cv2.putText(clone, text, (startX, y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
-# show the output after *before* running NMS
-cv2.imshow("Before NMS", clone)
-# run non-maxima suppression on the bounding boxes
-box_nms = non_max_suppression(boxes, proba)
-index = []
-for i in np.arange(len(boxes)):
-    for j in np.arange(len(box_nms)):
-        if (boxes[i] == box_nms[j]).all():
-            index.append(i)
-print(index)
-# loop over the bounding box indexes
-for i in index:
-    # draw the bounding box, label, and probability on the image
-    (startX, startY, endX, endY) = boxes[i]
-    cv2.rectangle(image, (startX, startY), (endX, endY),
-                  (0, 255, 0), 2)
-    y = startY - 10 if startY - 10 > 10 else startY + 10
-    text = "Raccoon: {:.2f}%".format(proba[i] * 100)
-    cv2.putText(image, text, (startX, y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
-# show the output image *after* running NMS
-cv2.imshow("After NMS", image)
-cv2.waitKey(0)
+# boxes = boxes[idxs]
+# proba = proba[idxs][:, 1]
+# # further filter indexes by enforcing a minimum prediction probability be met
+idx = np.where(proba >= config.MIN_PROBA)
+print(proba[idx])
+labels = lb.classes_[idx[1]]
+# labels = lb.classes_[np.where(proba >= config.MIN_PROBA)[1]]
+# boxes = boxes[idxs]
+# proba = proba[idxs]
+# # clone the original image so that we can draw on it
+# clone = image.copy()
+# # loop over the bounding boxes and associated probabilities
+# for (box, prob) in zip(boxes, proba):
+#     # draw the bounding box, label, and probability on the image
+#     (startX, startY, endX, endY) = box
+#     cv2.rectangle(clone, (startX, startY), (endX, endY),
+#                   (0, 255, 0), 2)
+#     y = startY - 10 if startY - 10 > 10 else startY + 10
+#     text = "Raccoon: {:.2f}%".format(prob * 100)
+#     cv2.putText(clone, text, (startX, y),
+#                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
+# # show the output after *before* running NMS
+# cv2.imwrite(os.path.sep.join([config.PLOTS_PATH, '2.jpg']), clone)
+# # cv2.imshow("Before NMS", clone)
+# # run non-maxima suppression on the bounding boxes
+# box_nms = non_max_suppression(boxes, proba)
+# index = []
+# for i in np.arange(len(boxes)):
+#     for j in np.arange(len(box_nms)):
+#         if (boxes[i] == box_nms[j]).all():
+#             index.append(i)
+# print(index)
+# # loop over the bounding box indexes
+# for i in index:
+#     # draw the bounding box, label, and probability on the image
+#     (startX, startY, endX, endY) = boxes[i]
+#     cv2.rectangle(image, (startX, startY), (endX, endY),
+#                   (0, 255, 0), 2)
+#     y = startY - 10 if startY - 10 > 10 else startY + 10
+#     text = "Raccoon: {:.2f}%".format(proba[i] * 100)
+#     cv2.putText(image, text, (startX, y),
+#                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
+# # show the output image *after* running NMS
+# # cv2.imshow("After NMS", image)
+# cv2.imwrite(os.path.sep.join([config.PLOTS_PATH, '1.jpg']), image)
+# cv2.waitKey(0)
